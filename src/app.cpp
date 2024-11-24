@@ -17,7 +17,7 @@
 
 App::App(int nthreads){
 	camera = Camera();
-    cave = new Cave(400, 50, 400, nthreads);
+    cave = new Cave(800, 50, 800, nthreads);
     boidsys = new BoidSystem(300, 1, cave);
     camera.pos = {75, 100, 75};
     camera.front = -glm::normalize(camera.pos-glm::vec3(cave->sizex/2.0f, 0.0f, cave->sizez/2.0f));
