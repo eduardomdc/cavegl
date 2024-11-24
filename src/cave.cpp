@@ -9,8 +9,9 @@
 #include <iostream>
 #include <algorithm>
 #include <GLFW/glfw3.h>
+#include <omp.h>
 
-Cave::Cave(uint sizex, uint sizey, uint sizez){
+Cave::Cave(uint sizex, uint sizey, uint sizez, int nthreads){
     this->sizex = sizex;
     this->sizey = sizey;
     this->sizez = sizez;
@@ -22,10 +23,9 @@ Cave::Cave(uint sizex, uint sizey, uint sizez){
             sizey, std::vector<float>(
                 sizez, 0)));
     generatePoints();
-    std::cout<<"Generating mesh..."<<std::endl;
     float time = (float)glfwGetTime();
     level = 0;
-    vertices = marchingcubes(cavepoints, level);
+    vertices = parallelmarchingcubes(cavepoints, level,nthreads);
     /*for(int i=0; i<vertices.size(); i+=5){
         std::cout<< "{";
         std::cout << vertices[i];
@@ -34,9 +34,9 @@ Cave::Cave(uint sizex, uint sizey, uint sizez){
         std::cout <<"}{ "<< vertices[i+3];
         std::cout <<", "<< vertices[i+4]<<"}"<<std::endl;
     }*/
+    calculateNormals(nthreads);
     time -= (float)glfwGetTime();
-    std::cout<<"-- Done: "<<-time<<"s elapsed"<<std::endl;
-    calculateNormals();
+    std::cout<<-time<<std::endl;
     light = new Light();
     ambientLight = new Light();
     light->pos = {sizex/2, 500.0, sizez/2};
@@ -48,7 +48,6 @@ Cave::Cave(uint sizex, uint sizey, uint sizez){
 }
 
 Cave::~Cave(){
-    std::cout<<"Cave::Runnning destructor"<<std::endl;
     delete simplex;
     delete light;
     delete ambientLight;
@@ -83,8 +82,6 @@ float distanceCenter(glm::vec3 pos, glm::vec3 center){
 }
 
 void Cave::generatePoints(){
-    std::cout<<"Generating terrain random values..."<<std::endl;
-    float time = (float)glfwGetTime();
     //std::cout<<"Cave::generatePoints:: cavepoints.size:"<<cavepoints.size()<<std::endl;
     for (int i = 0; i<cavepoints.size(); i++){
         for (int j = 0; j<cavepoints[i].size(); j++){
@@ -98,8 +95,6 @@ void Cave::generatePoints(){
             }
         }
     }
-    time -= (float)glfwGetTime();
-    std::cout<<"-- Done: "<<-time<<"s elapsed"<<std::endl;
 }
 
 float Cave::field(float x, float y, float z){
@@ -109,11 +104,10 @@ float Cave::field(float x, float y, float z){
                                         -(1/(y*y+1.))*simplex->noise(x/10., y/10., z/10.);
 }
 
-void Cave::calculateNormals(){
-    std::cout<<"Calculating vertex normals..."<<std::endl;
-    float time = (float)glfwGetTime();
+std::vector<float> Cave::calculateNormalsThread(int nthreads, int thread_id){
     float epsilon = 1;
-    for(int i=0; i<vertices.size(); i+= 5){
+    std::vector<float> thread_data;
+    for(int i=thread_id; i<vertices.size(); i+= 5){
         glm::vec3 v(vertices[i], vertices[i+1], vertices[i+2]);
         float origin = field(v.x, v.y, v.z); // value of field at vertex
         glm::vec3 normal;
@@ -130,15 +124,28 @@ void Cave::calculateNormals(){
         // normal calculated, now push back gpu data structure:
         //  |vertex|normal|texcoord|
         //  |0    2|3    5|6   7|
-        data.push_back(v.x);
-        data.push_back(v.y);
-        data.push_back(v.z);
-        data.push_back(normal.x);
-        data.push_back(normal.y);
-        data.push_back(normal.z);
-        data.push_back(vertices[i+3]);
-        data.push_back(vertices[i+4]);
+        thread_data.push_back(v.x);
+        thread_data.push_back(v.y);
+        thread_data.push_back(v.z);
+        thread_data.push_back(normal.x);
+        thread_data.push_back(normal.y);
+        thread_data.push_back(normal.z);
+        thread_data.push_back(vertices[i+3]);
+        thread_data.push_back(vertices[i+4]);
     }
-    time -= (float)glfwGetTime();
-    std::cout<<"-- Done: "<<-time<<"s elapsed"<<std::endl;
+    return thread_data;
+}
+
+void Cave::calculateNormals(int nthreads){
+    std::vector<std::vector<float>> threadResults(nthreads); // To store results from each thread
+    
+    #pragma omp parallel num_threads(nthreads)
+    {
+        int thread_id = omp_get_thread_num();
+        threadResults[thread_id] = calculateNormalsThread(nthreads, thread_id);
+    }
+
+    for (const auto& result : threadResults) {
+        data.insert(data.end(), result.begin(), result.end());
+    }
 }

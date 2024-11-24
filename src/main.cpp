@@ -23,13 +23,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-int main(){
-    std::cout << "main:: starting" << std::endl;
+int main(int argc, char** argv){
+    int nthreads = atoi(argv[1]);
     unsigned long int seed = time(nullptr);
     srand(seed);
-    std::cout << "seed = "<< seed << std::endl;
-    app = new App();
+    app = new App(nthreads);
     app->init();
+    glfwTerminate();
+    return 0;
     glfwSetCursorPosCallback(app->window, mouse_callback);
     glfwSetFramebufferSizeCallback(app->window, framebuffer_size_callback);
     glfwSetKeyCallback(app->window, key_callback);
@@ -52,7 +53,6 @@ int main(){
     delete app->boidsys;
     //close glfw
     glfwTerminate();
-    std::cout<<"Exited without errors."<<std::endl;
     return 0;
 }
 

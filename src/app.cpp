@@ -15,10 +15,9 @@
 #include <random>
 #include <time.h>
 
-App::App(){
-    std::cout<<"App::Constructor()"<<std::endl;
+App::App(int nthreads){
 	camera = Camera();
-    cave = new Cave(100, 50, 100);
+    cave = new Cave(400, 50, 400, nthreads);
     boidsys = new BoidSystem(300, 1, cave);
     camera.pos = {75, 100, 75};
     camera.front = -glm::normalize(camera.pos-glm::vec3(cave->sizex/2.0f, 0.0f, cave->sizez/2.0f));
@@ -49,7 +48,6 @@ int load_texture(const char* file, unsigned int format, unsigned int index) {
 int App::init(){
     // glfw: initialize and configure
     // ------------------------------
-    std::cout << "App::init Initializing systems" << std::endl;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -120,7 +118,6 @@ int App::init(){
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     // LOADING TEXTURE ------------
-    printf("Loading Textures\n");
     texture1 = load_texture("../textures/rock.jpg", GL_RGB, 0);
     fishtex = load_texture("../textures/clownfish.png", GL_RGBA, 1);
     // LOAD Caustics textures
@@ -208,7 +205,6 @@ int App::init(){
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_BACK);
     glEnable(GL_MULTISAMPLE);
-    printf("Ready\n");
     return 0;
 }
 

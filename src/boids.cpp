@@ -261,7 +261,6 @@ glm::mat4 Boid::scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f,0.5f,0.4f));
 glm::mat4 Killer::scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
 
 BoidSystem::BoidSystem(int amount, int amountkillers, Cave* cave){
-    std::cout<<"BoidSystem::Contructor()"<<std::endl;
     this->cave = cave;
     Boid::bs = this;
     Killer::bs = this;

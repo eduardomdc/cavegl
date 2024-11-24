@@ -13,7 +13,7 @@
 
 class App {
 public:
-    App();
+    App(int nthreads);
     Cave* cave;
     BoidSystem* boidsys;
     Camera camera;

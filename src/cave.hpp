@@ -13,12 +13,13 @@ using namespace std;
 
 class Cave {
 public:
-    Cave(uint sizex, uint sizey, uint sizez);
+    Cave(uint sizex, uint sizey, uint sizez, int nthreads);
     ~Cave();
     float field(float x, float y, float z);
     void generatePoints();
     void generateVertices();
-    void calculateNormals();
+    std::vector<float> calculateNormalsThread(int nthreads, int thread_id);
+    void calculateNormals(int nthreads);
     glm::vec3 fieldGrad(glm::vec3 pos);
     unsigned int sizex, sizey, sizez;
     unsigned int trianglesCount;

@@ -8,6 +8,7 @@
 #include "glm/trigonometric.hpp"
 #include <iostream>
 #include <vector>
+#include <omp.h>
 
 int mcIndex(float values[8], float level){
     int index = 0;
@@ -49,9 +50,9 @@ std::vector<float> mcVertex(float vertex[8], float level){
 	return verts;
 }
 
-std::vector<float> marchingcubes(std::vector<std::vector<std::vector<float>>> points, float level){
+std::vector<float> marchingcubes_thread(std::vector<std::vector<std::vector<float>>> points, float level, int nthreads, int offset){
 	std::vector<float> newVerts;
-	for (int x=0; x<points.size()-1; x++){
+	for (int x=offset; x<points.size()-1; x+=nthreads){
 		for(int y=0; y<points[x].size()-1; y++){
 			for(int z=0; z<points[x][y].size()-1; z++){
 				float values[8] = {
@@ -91,4 +92,22 @@ std::vector<float> marchingcubes(std::vector<std::vector<std::vector<float>>> po
 		}
 	}
 	return newVerts;
+}
+
+
+std::vector<float> parallelmarchingcubes(std::vector<std::vector<std::vector<float>>> points, float level, int nthreads){
+	std::vector<std::vector<float>> threadResults(nthreads); // To store results from each thread
+    
+    #pragma omp parallel num_threads(nthreads)
+    {
+        int thread_id = omp_get_thread_num();
+        threadResults[thread_id] = marchingcubes_thread(points, level, nthreads, thread_id);
+    }
+
+    std::vector<float> newVerts;
+    for (const auto& result : threadResults) {
+        newVerts.insert(newVerts.end(), result.begin(), result.end());
+    }
+
+    return newVerts;
 }
